@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Match Center Pro 2026/2027 • Blessures & Comparateur</title>
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        nbaDark: '#080b11',
+                        cardDark: '#111520',
+                        borderDark: '#1e2538'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-nbaDark text-slate-100 min-h-screen font-sans">
+
+    <!-- BARRE DE NAVIGATION -->
+    <header class="border-b border-borderDark bg-cardDark/95 sticky top-0 z-50 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <span class="bg-red-600 text-white font-black text-xs px-2.5 py-1 rounded tracking-widest shadow">NBA PRO</span>
+                <h1 class="text-lg font-bold">Match Center & Infirmerie <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 ml-1">2026-2027</span></h1>
+            </div>
+
+            <!-- Barre de recherche rapide -->
+            <div class="flex items-center gap-2 bg-slate-900 border border-borderDark px-3 py-1.5 rounded-xl w-full sm:w-72">
+                <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs"></i>
+                <input type="text" id="quickSearchInput" oninput="filterTeams(this.value)" placeholder="Rechercher équipe ou joueur..." class="bg-transparent text-xs text-slate-200 outline-none w-full placeholder-slate-500">
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <div class="rounded-xl border border-amber-700/60 bg-amber-950/30 p-3 text-sm text-amber-200">
+            <strong>À savoir :</strong> les scores, le classement, les effectifs et les rapports de blessures sont demandés aux API en ligne quand elles sont accessibles. Les probabilités restent des estimations et ne garantissent jamais le résultat. Les API ESPN utilisées ici ne sont pas officielles et peuvent changer.
+        </div>
+
+        <!-- DONNÉES EN DIRECT VIA API ESPN (non officielle, sans clé) -->
+        <section class="bg-cardDark border border-emerald-800/60 rounded-2xl p-4 shadow-lg space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-sm uppercase tracking-wider font-bold text-emerald-300"><i class="fa-solid fa-tower-broadcast mr-2"></i>Centre NBA en direct — API</h2>
+                    <p class="text-xs text-slate-400 mt-1">Scores, classement, effectifs, statistiques disponibles et blessures via API. Connexion Internet requise.</p>
+                </div>
+                <button id="refreshApiBtn" onclick="refreshLiveData()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-lg"><i class="fa-solid fa-rotate mr-1"></i>Actualiser</button>
+            </div>
+            <div id="apiStatus" class="text-xs text-slate-400" role="status">Connexion à l’API en cours…</div>
+            <div>
+                <h3 class="text-xs uppercase tracking-wider font-bold text-slate-300 mb-2">Matchs du jour / scores en direct</h3>
+                <div id="liveGames" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2"><p class="text-sm text-slate-500">Chargement des matchs…</p></div>
+            </div>
+            <div>
+                <h3 class="text-xs uppercase tracking-wider font-bold text-slate-300 mb-2">Classement NBA actuel</h3>
+                <div id="liveStandings" class="overflow-x-auto text-sm"><p class="text-slate-500">Chargement du classement…</p></div>
+            </div>
+            <p class="text-[11px] text-slate-500">Source : API ESPN non officielle (accès public non garanti). Effectifs et blessures dépendent des endpoints disponibles ; les titulaires ne sont pas toujours confirmés. Les probabilités calculées sont indicatives.</p>
+        </section>
+
+        <!-- CALENDRIER / MATCHS AU PROGRAMME DU JOUR -->
+        <section class="bg-cardDark border border-borderDark rounded-2xl p-4 shadow-lg">
+            <h2 class="text-xs uppercase tracking-wider font-bold text-slate-400 mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-calendar-day text-blue-500"></i> Matchs récupérés via API (cliquez pour analyser)
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3" id="fixturesContainer">
+                <!-- Rempli par JavaScript -->
+            </div>
+        </section>
+
+        <!-- SÉLECTEUR DE CONFRONTATION DIRECTE -->
+        <section class="bg-cardDark border border-borderDark rounded-2xl p-5 shadow-lg">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                <!-- Domicile -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-blue-400 mb-1.5 uppercase">
+                        <i class="fa-solid fa-house mr-1"></i> Équipe Domicile (Home)
+                    </label>
+                    <div class="flex items-center gap-3 bg-slate-900 border border-slate-700 rounded-xl p-2">
+                        <img id="homeLogoPreview" src="" class="w-10 h-10 object-contain" alt="Logo">
+                        <select id="teamHomeSelect" onchange="renderMatch()" class="w-full bg-transparent text-sm font-bold text-white focus:outline-none">
+                            <!-- Rempli en JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Swap -->
+                <div class="flex justify-center md:col-span-1">
+                    <button onclick="swapTeams()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-full text-slate-300 transition shadow hover:scale-110">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                    </button>
+                </div>
+
+                <!-- Extérieur -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-amber-400 mb-1.5 uppercase">
+                        <i class="fa-solid fa-plane mr-1"></i> Équipe Extérieur (Away)
+                    </label>
+                    <div class="flex items-center gap-3 bg-slate-900 border border-slate-700 rounded-xl p-2">
+                        <img id="awayLogoPreview" src="" class="w-10 h-10 object-contain" alt="Logo">
+                        <select id="teamAwaySelect" onchange="renderMatch()" class="w-full bg-transparent text-sm font-bold text-white focus:outline-none">
+                            <!-- Rempli en JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROBABILITÉ DE VICTOIRE ESTIMÉE (AVEC IMPACT BLESSÉS) -->
+        <section class="bg-cardDark border border-borderDark rounded-2xl p-4 shadow-md">
+            <div class="flex justify-between items-center text-xs font-bold mb-2">
+                <span class="text-blue-400" id="homeWinOdds">Domicile : 50%</span>
+                <span class="text-slate-400 uppercase tracking-widest text-[10px]">Probabilité estimée (ajustée selon l'infirmerie)</span>
+                <span class="text-amber-400" id="awayWinOdds">Extérieur : 50%</span>
+            </div>
+            <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden flex">
+                <div id="homeOddsBar" class="bg-blue-600 transition-all duration-500" style="width: 50%"></div>
+                <div id="awayOddsBar" class="bg-amber-500 transition-all duration-500" style="width: 50%"></div>
+            </div>
+        </section>
+
+        <!-- CARTES DÉTAILLÉES DES ÉQUIPES -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div id="homeCard" class="bg-cardDark border border-borderDark rounded-2xl p-6 shadow-md relative overflow-hidden"></div>
+            <div id="awayCard" class="bg-cardDark border border-borderDark rounded-2xl p-6 shadow-md relative overflow-hidden"></div>
+        </div>
+
+        <!-- 5 MAJEURS PROBABLES (LINEUPS) & IMPACT DES ABSENTS -->
+        <section class="bg-cardDark border border-borderDark rounded-2xl p-6 shadow-md">
+            <h3 class="text-xs uppercase tracking-wider font-bold text-slate-400 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-users-viewfinder text-purple-400"></i> Effectifs API & 5 majeur (si confirmé)
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 id="homeLineupTitle" class="text-sm font-bold text-blue-400 mb-3"></h4>
+                    <div id="homeLineup" class="space-y-2"></div>
+                </div>
+                <div>
+                    <h4 id="awayLineupTitle" class="text-sm font-bold text-amber-400 mb-3"></h4>
+                    <div id="awayLineup" class="space-y-2"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STATISTIQUES INDIVIDUELLES VIA API -->
+        <section class="bg-cardDark border border-borderDark rounded-2xl p-6 shadow-md">
+            <h3 class="text-xs uppercase tracking-wider font-bold text-slate-400 mb-3"><i class="fa-solid fa-chart-line text-emerald-400 mr-2"></i>Statistiques individuelles API</h3>
+            <p class="text-xs text-slate-500 mb-4">Aperçu saison des joueurs présents dans les effectifs API. Les joueurs affichés ne sont pas nécessairement les titulaires ; les données dépendent de la disponibilité ESPN.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div><h4 id="homePlayerStatsTitle" class="text-sm font-bold text-blue-400 mb-3"></h4><div id="homePlayerStats" class="space-y-2"><p class="text-xs text-slate-500">En attente des données API…</p></div></div>
+                <div><h4 id="awayPlayerStatsTitle" class="text-sm font-bold text-amber-400 mb-3"></h4><div id="awayPlayerStats" class="space-y-2"><p class="text-xs text-slate-500">En attente des données API…</p></div></div>
+            </div>
+        </section>
+
+        <!-- STATISTIQUES COMPARATIVES FACE-À-FACE -->
+        <section class="bg-cardDark border border-borderDark rounded-2xl p-6 shadow-md">
+            <h3 class="text-xs uppercase tracking-wider font-bold text-slate-400 mb-6 flex items-center justify-between">
+                <span><i class="fa-solid fa-chart-column text-blue-500 mr-2"></i>Comparaison des Statistiques Clés</span>
+                <span class="text-[11px] text-slate-500 font-normal">Statistiques API si disponibles, sinon valeurs indicatives</span>
+            </h3>
+            <div id="statsComparison" class="space-y-5"></div>
+        </section>
+
+        <!-- RAPPORT D'INFIRMERIE & FORFAITS DÉTAILLÉ -->
+        <section class="bg-cardDark border border-borderDark rounded-2xl p-6 shadow-md">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-borderDark gap-3">
+                <div>
+                    <h3 class="text-sm uppercase tracking-wider font-bold text-red-400 flex items-center gap-2">
+                        <i class="fa-solid fa-notes-medical"></i> Rapport des Blessés & Absents (Injury Report)
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Rapports récupérés en ligne quand disponibles ; une absence de résultat ne signifie pas absence de blessure.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-[11px]">
+                    <span class="px-2 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800 font-semibold">OUT = Forfait</span>
+                    <span class="px-2 py-0.5 rounded bg-amber-950/80 text-amber-400 border border-amber-800 font-semibold">QUESTIONABLE = Incertain</span>
+                    <span class="px-2 py-0.5 rounded bg-purple-950/80 text-purple-400 border border-purple-800 font-semibold">GTD = Décision avant-match</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <div id="homeInjuryHeader" class="flex justify-between items-center mb-3 text-sm font-bold text-slate-200"></div>
+                    <div id="homeInjuryList" class="space-y-2.5"></div>
+                </div>
+                <div>
+                    <div id="awayInjuryHeader" class="flex justify-between items-center mb-3 text-sm font-bold text-slate-200"></div>
+                    <div id="awayInjuryList" class="space-y-2.5"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- DONNÉES COMPLÈTES AVEC LOGOS, 5 MAJEURS & CALENDRIER -->
+    <script>
+        const NBA_TEAMS = {
+            "BOS": { name: "Boston Celtics", conf: "Est", record: "42-12", ppg: 120.4, oppg: 109.1, rpg: 46.8, apg: 27.5, logo: "https://a.espncdn.com/i/teamlogos/nba/500/bos.png",
+                lineup: [
+                    { player: "Jrue Holiday", pos: "PG", isInjured: false },
+                    { player: "Payton Pritchard", pos: "SG", isInjured: false, note: "Remplace White" },
+                    { player: "Jaylen Brown", pos: "SF", isInjured: false },
+                    { player: "Jayson Tatum", pos: "PF", isInjured: false },
+                    { player: "Al Horford", pos: "C", isInjured: false, note: "Remplace Porzingis" }
+                ],
+                injuries: [
+                    { player: "Kristaps Porziņģis", pos: "C", status: "OUT", reason: "Entorse cheville droite", returnDate: "2 semaines", impact: "Majeur" },
+                    { player: "Derrick White", pos: "SG", status: "GTD", reason: "Contusion mollet", returnDate: "Jour le jour", impact: "Majeur" }
+                ]
+            },
+            "LAL": { name: "Los Angeles Lakers", conf: "Ouest", record: "36-19", ppg: 117.5, oppg: 114.0, rpg: 43.9, apg: 28.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/lal.png",
+                lineup: [
+                    { player: "D'Angelo Russell", pos: "PG", isInjured: false },
+                    { player: "Austin Reaves", pos: "SG", isInjured: false },
+                    { player: "Rui Hachimura", pos: "SF", isInjured: false },
+                    { player: "LeBron James", pos: "PF", isInjured: false },
+                    { player: "Jaxson Hayes", pos: "C", isInjured: false, note: "En remplacement de Davis" }
+                ],
+                injuries: [
+                    { player: "Anthony Davis", pos: "C", status: "QUESTIONABLE", reason: "Tension pied gauche", returnDate: "Décision à l'échauffement", impact: "Critique" },
+                    { player: "Jarred Vanderbilt", pos: "SF", status: "OUT", reason: "Chirurgie du pied", returnDate: "Fin du mois", impact: "Rotation" }
+                ]
+            },
+            "GSW": { name: "Golden State Warriors", conf: "Ouest", record: "34-21", ppg: 118.0, oppg: 113.8, rpg: 46.5, apg: 29.3, logo: "https://a.espncdn.com/i/teamlogos/nba/500/gsw.png",
+                lineup: [
+                    { player: "Stephen Curry", pos: "PG", isInjured: false },
+                    { player: "Brandin Podziemski", pos: "SG", isInjured: false },
+                    { player: "Andrew Wiggins", pos: "SF", isInjured: false },
+                    { player: "Jonathan Kuminga", pos: "PF", isInjured: false },
+                    { player: "Draymond Green", pos: "C", isInjured: false }
+                ],
+                injuries: [
+                    { player: "De'Anthony Melton", pos: "SG", status: "OUT", reason: "Chirurgie genou", returnDate: "Saison terminée", impact: "Rotation" }
+                ]
+            },
+            "SAS": { name: "San Antonio Spurs", conf: "Ouest", record: "28-26", ppg: 114.2, oppg: 114.0, rpg: 45.5, apg: 28.7, logo: "https://a.espncdn.com/i/teamlogos/nba/500/sas.png",
+                lineup: [
+                    { player: "Chris Paul", pos: "PG", isInjured: false },
+                    { player: "Devin Vassell", pos: "SG", isInjured: false },
+                    { player: "Julian Champagnie", pos: "SF", isInjured: false },
+                    { player: "Harrison Barnes", pos: "PF", isInjured: false },
+                    { player: "Zach Collins", pos: "C", isInjured: false, note: "Remplace Wembanyama (repos)" }
+                ],
+                injuries: [
+                    { player: "Victor Wembanyama", pos: "C", status: "GTD", reason: "Contusion genou (repos préventif)", returnDate: "Ce soir ou demain", impact: "Critique" },
+                    { player: "Jeremy Sochan", pos: "PF", status: "OUT", reason: "Fracture pouce", returnDate: "3 semaines", impact: "Majeur" }
+                ]
+            },
+            "OKC": { name: "Oklahoma City Thunder", conf: "Ouest", record: "43-12", ppg: 122.5, oppg: 108.9, rpg: 45.0, apg: 27.6, logo: "https://a.espncdn.com/i/teamlogos/nba/500/okc.png",
+                lineup: [
+                    { player: "Shai Gilgeous-Alexander", pos: "PG", isInjured: false },
+                    { player: "Alex Caruso", pos: "SG", isInjured: false },
+                    { player: "Luguentz Dort", pos: "SF", isInjured: false },
+                    { player: "Jalen Williams", pos: "PF", isInjured: false },
+                    { player: "Isaiah Hartenstein", pos: "C", isInjured: false }
+                ],
+                injuries: [
+                    { player: "Chet Holmgren", pos: "C", status: "OUT", reason: "Fracture iliaque", returnDate: "Janvier", impact: "Critique" }
+                ]
+            },
+            "DEN": { name: "Denver Nuggets", conf: "Ouest", record: "39-16", ppg: 119.4, oppg: 112.1, rpg: 45.7, apg: 30.1, logo: "https://a.espncdn.com/i/teamlogos/nba/500/den.png",
+                lineup: [
+                    { player: "Jamal Murray", pos: "PG", isInjured: false },
+                    { player: "Christian Braun", pos: "SG", isInjured: false },
+                    { player: "Michael Porter Jr.", pos: "SF", isInjured: false },
+                    { player: "Peyton Watson", pos: "PF", isInjured: false, note: "Remplace Gordon" },
+                    { player: "Nikola Jokić", pos: "C", isInjured: false }
+                ],
+                injuries: [
+                    { player: "Aaron Gordon", pos: "PF", status: "QUESTIONABLE", reason: "Contracture mollet", returnDate: "Évaluation jour J", impact: "Majeur" }
+                ]
+            },
+            "NYK": { name: "New York Knicks", conf: "Est", record: "37-18", ppg: 116.5, oppg: 110.3, rpg: 45.8, apg: 26.3, logo: "https://a.espncdn.com/i/teamlogos/nba/500/nyk.png",
+                lineup: [
+                    { player: "Jalen Brunson", pos: "PG", isInjured: false },
+                    { player: "Mikal Bridges", pos: "SG", isInjured: false },
+                    { player: "OG Anunoby", pos: "SF", isInjured: false },
+                    { player: "Josh Hart", pos: "PF", isInjured: false },
+                    { player: "Karl-Anthony Towns", pos: "C", isInjured: false }
+                ],
+                injuries: [
+                    { player: "Mitchell Robinson", pos: "C", status: "OUT", reason: "Chirurgie cheville", returnDate: "Mi-décembre", impact: "Rotation" }
+                ]
+            },
+            "MIL": { name: "Milwaukee Bucks", conf: "Est", record: "35-19", ppg: 118.9, oppg: 115.3, rpg: 44.2, apg: 26.5, logo: "https://a.espncdn.com/i/teamlogos/nba/500/mil.png",
+                lineup: [
+                    { player: "Damian Lillard", pos: "PG", isInjured: false },
+                    { player: "Taurean Prince", pos: "SG", isInjured: false },
+                    { player: "Andre Jackson Jr.", pos: "SF", isInjured: false, note: "Remplace Middleton" },
+                    { player: "Giannis Antetokounmpo", pos: "PF", isInjured: false },
+                    { player: "Brook Lopez", pos: "C", isInjured: false }
+                ],
+                injuries: [
+                    { player: "Khris Middleton", pos: "SF", status: "OUT", reason: "Chirurgie chevilles", returnDate: "Inconnue", impact: "Majeur" }
+                ]
+            },
+            "CLE": { name: "Cleveland Cavaliers", conf: "Est", record: "41-14", ppg: 121.0, oppg: 110.4, rpg: 45.1, apg: 28.5, logo: "https://a.espncdn.com/i/teamlogos/nba/500/cle.png",
+                lineup: [
+                    { player: "Darius Garland", pos: "PG", isInjured: false },
+                    { player: "Donovan Mitchell", pos: "SG", isInjured: false },
+                    { player: "Isaac Okoro", pos: "SF", isInjured: false },
+                    { player: "Evan Mobley", pos: "PF", isInjured: false },
+                    { player: "Jarrett Allen", pos: "C", isInjured: false }
+                ],
+                injuries: []
+            },
+            "DAL": { name: "Dallas Mavericks", conf: "Ouest", record: "38-17", ppg: 119.5, oppg: 113.5, rpg: 45.2, apg: 26.4, logo: "https://a.espncdn.com/i/teamlogos/nba/500/dal.png",
+                lineup: [
+                    { player: "Kyrie Irving", pos: "PG", isInjured: false },
+                    { player: "Quentin Grimes", pos: "SG", isInjured: false, note: "Remplace Dončić si forfait" },
+                    { player: "Klay Thompson", pos: "SF", isInjured: false },
+                    { player: "P.J. Washington", pos: "PF", isInjured: false },
+                    { player: "Dereck Lively II", pos: "C", isInjured: false }
+                ],
+                injuries: [
+                    { player: "Luka Dončić", pos: "PG", status: "QUESTIONABLE", reason: "Entorse poignet", returnDate: "Décision 1h avant", impact: "Critique" }
+                ]
+            }
+,
+            "ATL": { name: "Atlanta Hawks", conf: "Est", record: "À actualiser", ppg: 117.0, oppg: 119.0, rpg: 44.0, apg: 29.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/atl.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "BKN": { name: "Brooklyn Nets", conf: "Est", record: "À actualiser", ppg: 108.0, oppg: 114.0, rpg: 41.0, apg: 25.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/bkn.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "CHA": { name: "Charlotte Hornets", conf: "Est", record: "À actualiser", ppg: 108.0, oppg: 116.0, rpg: 40.0, apg: 25.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/cha.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "CHI": { name: "Chicago Bulls", conf: "Est", record: "À actualiser", ppg: 112.0, oppg: 115.0, rpg: 43.0, apg: 28.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/chi.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "DET": { name: "Detroit Pistons", conf: "Est", record: "À actualiser", ppg: 110.0, oppg: 116.0, rpg: 44.0, apg: 26.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/det.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "HOU": { name: "Houston Rockets", conf: "Ouest", record: "À actualiser", ppg: 114.0, oppg: 110.0, rpg: 48.0, apg: 25.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/hou.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "IND": { name: "Indiana Pacers", conf: "Est", record: "À actualiser", ppg: 118.0, oppg: 119.0, rpg: 42.0, apg: 29.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/ind.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "LAC": { name: "LA Clippers", conf: "Ouest", record: "À actualiser", ppg: 112.0, oppg: 111.0, rpg: 44.0, apg: 24.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/lac.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "MEM": { name: "Memphis Grizzlies", conf: "Ouest", record: "À actualiser", ppg: 112.0, oppg: 114.0, rpg: 44.0, apg: 27.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/mem.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "MIA": { name: "Miami Heat", conf: "Est", record: "À actualiser", ppg: 110.0, oppg: 110.0, rpg: 42.0, apg: 26.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/mia.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "MIN": { name: "Minnesota Timberwolves", conf: "Ouest", record: "À actualiser", ppg: 113.0, oppg: 108.0, rpg: 44.0, apg: 27.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/min.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "NOP": { name: "New Orleans Pelicans", conf: "Ouest", record: "À actualiser", ppg: 114.0, oppg: 116.0, rpg: 44.0, apg: 27.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/no.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "ORL": { name: "Orlando Magic", conf: "Est", record: "À actualiser", ppg: 112.0, oppg: 109.0, rpg: 43.0, apg: 27.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/orl.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "PHI": { name: "Philadelphia 76ers", conf: "Est", record: "À actualiser", ppg: 113.0, oppg: 114.0, rpg: 42.0, apg: 25.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/phi.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "PHX": { name: "Phoenix Suns", conf: "Ouest", record: "À actualiser", ppg: 115.0, oppg: 114.0, rpg: 43.0, apg: 27.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/phx.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "POR": { name: "Portland Trail Blazers", conf: "Ouest", record: "À actualiser", ppg: 109.0, oppg: 116.0, rpg: 43.0, apg: 25.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/por.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "SAC": { name: "Sacramento Kings", conf: "Ouest", record: "À actualiser", ppg: 115.0, oppg: 116.0, rpg: 43.0, apg: 28.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/sac.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "TOR": { name: "Toronto Raptors", conf: "Est", record: "À actualiser", ppg: 111.0, oppg: 114.0, rpg: 43.0, apg: 29.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/tor.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "UTA": { name: "Utah Jazz", conf: "Ouest", record: "À actualiser", ppg: 111.0, oppg: 119.0, rpg: 45.0, apg: 27.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/uta.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            },
+            "WAS": { name: "Washington Wizards", conf: "Est", record: "À actualiser", ppg: 109.0, oppg: 120.0, rpg: 42.0, apg: 26.0, logo: "https://a.espncdn.com/i/teamlogos/nba/500/was.png",
+                lineup: [{ player: 'À confirmer', pos: 'PG', isInjured: false }, { player: 'À confirmer', pos: 'SG', isInjured: false }, { player: 'À confirmer', pos: 'SF', isInjured: false }, { player: 'À confirmer', pos: 'PF', isInjured: false }, { player: 'À confirmer', pos: 'C', isInjured: false }],
+                injuries: []
+            }
+        };
+
+        // MATCHS AU PROGRAMME DU JOUR (CALENDRIER)
+        let LIVE_EVENTS = [];
+        const TEAM_ID_BY_ABBR = {};
+        const TEAM_DATA_CACHE = new Map();
+        const TEAM_DATA_PENDING = new Map();
+        let LIVE_INJURY_CACHE = { at: 0, byTeam: {} };
+        let LAST_STANDINGS_DATA = null;
+
+        // Retirer les anciens exemples statiques (saison passée) pour ne pas les présenter comme des données actuelles.
+        Object.values(NBA_TEAMS).forEach(team => {
+            team.injuries = [];
+            team.lineup = [
+                { player: 'À confirmer via API', pos: 'PG', isInjured: false },
+                { player: 'À confirmer via API', pos: 'SG', isInjured: false },
+                { player: 'À confirmer via API', pos: 'SF', isInjured: false },
+                { player: 'À confirmer via API', pos: 'PF', isInjured: false },
+                { player: 'À confirmer via API', pos: 'C', isInjured: false }
+            ];
+        });
+
+        // 1. Matchs réels renvoyés par le scoreboard API ; aucune affiche fictive n’est présentée comme réelle.
+        function renderFixtures() {
+            const container = document.getElementById('fixturesContainer');
+            if (!LIVE_EVENTS.length) {
+                container.innerHTML = '<p class="text-sm text-slate-500 col-span-full">Aucun match disponible via l’API pour la date affichée. Utilisez les sélecteurs pour comparer deux équipes.</p>';
+                return;
+            }
+            container.innerHTML = LIVE_EVENTS.map(event => {
+                const comp = event.competitions?.[0] || {};
+                const competitors = comp.competitors || [];
+                const home = competitors.find(c => c.homeAway === 'home') || competitors[0] || {};
+                const away = competitors.find(c => c.homeAway === 'away') || competitors[1] || {};
+                const homeAbbr = home.team?.abbreviation || '';
+                const awayAbbr = away.team?.abbreviation || '';
+                const homeKey = NBA_TEAMS[homeAbbr] ? homeAbbr : Object.keys(NBA_TEAMS).find(k => NBA_TEAMS[k].name === home.team?.displayName);
+                const awayKey = NBA_TEAMS[awayAbbr] ? awayAbbr : Object.keys(NBA_TEAMS).find(k => NBA_TEAMS[k].name === away.team?.displayName);
+                const time = event.date ? new Date(event.date).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : 'Horaire à confirmer';
+                const status = event.status?.type?.shortDetail || event.status?.type?.detail || time;
+                const score = (home.score != null || away.score != null) ? `${away.score ?? '—'} - ${home.score ?? '—'}` : 'VS';
+                const click = homeKey && awayKey ? `onclick="selectFixture('${homeKey}', '${awayKey}')"` : '';
+                return `<div ${click} class="bg-slate-900 border border-borderDark hover:border-blue-500/60 p-3 rounded-xl ${homeKey && awayKey ? 'cursor-pointer' : ''} transition">
+                    <div class="flex justify-between items-center text-[10px] text-slate-400 mb-2"><span class="font-bold text-emerald-300">${escapeHtml(status)}</span><span>${escapeHtml(time)}</span></div>
+                    <div class="flex items-center justify-between gap-2"><div class="flex items-center gap-2 min-w-0"><img src="${escapeHtml(home.team?.logos?.[0]?.href || NBA_TEAMS[homeAbbr]?.logo || '')}" class="w-6 h-6 object-contain" alt=""><span class="text-xs font-bold truncate">${escapeHtml(home.team?.abbreviation || home.team?.displayName || 'Domicile')}</span></div><span class="text-xs font-mono text-slate-300">${escapeHtml(score)}</span><div class="flex items-center gap-2 min-w-0"><span class="text-xs font-bold truncate">${escapeHtml(away.team?.abbreviation || away.team?.displayName || 'Extérieur')}</span><img src="${escapeHtml(away.team?.logos?.[0]?.href || NBA_TEAMS[awayAbbr]?.logo || '')}" class="w-6 h-6 object-contain" alt=""></div></div>
+                </div>`;
+            }).join('');
+        }
+
+        function selectFixture(homeKey, awayKey) {
+            document.getElementById('teamHomeSelect').value = homeKey;
+            document.getElementById('teamAwaySelect').value = awayKey;
+            renderMatch();
+            window.scrollTo({ top: 300, behavior: 'smooth' });
+        }
+
+        // 2. PEUPLER LES SÉLECTEURS
+        function populateSelectors() {
+            const hSel = document.getElementById('teamHomeSelect');
+            const aSel = document.getElementById('teamAwaySelect');
+            hSel.innerHTML = "";
+            aSel.innerHTML = "";
+
+            Object.keys(NBA_TEAMS).forEach(key => {
+                const t = NBA_TEAMS[key];
+                hSel.add(new Option(`${t.name} (${t.conf})`, key));
+                aSel.add(new Option(`${t.name} (${t.conf})`, key));
+            });
+
+            hSel.value = "BOS";
+            aSel.value = "LAL";
+        }
+
+        function swapTeams() {
+            const hSel = document.getElementById('teamHomeSelect');
+            const aSel = document.getElementById('teamAwaySelect');
+            const tmp = hSel.value;
+            hSel.value = aSel.value;
+            aSel.value = tmp;
+            renderMatch();
+        }
+
+        // 3. BARRE DE RECHERCHE RAPIDE
+        function filterTeams(query) {
+            const q = String(query || '').trim().toLocaleLowerCase('fr');
+            if (!q) return;
+
+            for (const [key, team] of Object.entries(NBA_TEAMS)) {
+                const teamMatch = team.name.toLocaleLowerCase('fr').includes(q) ||
+                    key.toLocaleLowerCase('fr').includes(q);
+                const lineupMatch = team.lineup.some(p =>
+                    p.player.toLocaleLowerCase('fr').includes(q));
+                const injuryMatch = team.injuries.some(p =>
+                    p.player.toLocaleLowerCase('fr').includes(q));
+
+                if (teamMatch || lineupMatch || injuryMatch) {
+                    const homeSelect = document.getElementById('teamHomeSelect');
+                    const awaySelect = document.getElementById('teamAwaySelect');
+                    homeSelect.value = key;
+
+                    // Évite de comparer une équipe à elle-même.
+                    if (awaySelect.value === key) {
+                        awaySelect.value = Object.keys(NBA_TEAMS).find(k => k !== key) || key;
+                    }
+                    renderMatch();
+                    return;
+                }
+            }
+        }
+
+        // 4. RENDU D'UNE CARTE D'ÉQUIPE
+        function renderCard(team, isHome) {
+            return `
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-xs uppercase font-bold px-2 py-0.5 rounded tracking-wide ${isHome ? 'bg-blue-900/40 text-blue-400 border border-blue-700/50' : 'bg-amber-900/40 text-amber-400 border border-amber-700/50'}">
+                        ${isHome ? 'Domicile' : 'Extérieur'}
+                    </span>
+                    <span class="text-xs text-slate-400 font-mono">Bilan : <strong class="text-white">${team.record}</strong></span>
+                </div>
+                <div class="flex items-center gap-4 mb-3">
+                    <img src="${team.logo}" class="w-16 h-16 object-contain" alt="">
+                    <div>
+                        <h3 class="text-2xl font-black text-white">${team.name}</h3>
+                        <p class="text-xs text-slate-400">Conférence ${team.conf}</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center bg-slate-900/70 p-3 rounded-xl border border-borderDark">
+                    <div>
+                        <p class="text-[10px] uppercase text-slate-400">Pts marqués</p>
+                        <p class="text-base font-bold text-white">${team.ppg}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase text-slate-400">Pts encaissés</p>
+                        <p class="text-base font-bold text-white">${team.oppg}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase text-slate-400">Passes / M</p>
+                        <p class="text-base font-bold text-white">${team.apg}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 5. RENDU DU 5 MAJEUR
+        function renderLineup(lineup, containerId, titleId, teamName) {
+            document.getElementById(titleId).innerText = `5 Majeur : ${teamName}`;
+            const container = document.getElementById(containerId);
+            container.innerHTML = lineup.map(p => `
+                <div class="bg-slate-900 border border-borderDark px-3 py-2 rounded-xl flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="font-mono font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">${p.pos}</span>
+                        <span class="font-bold text-slate-200">${p.player}</span>
+                    </div>
+                    ${p.note ? `<span class="text-[10px] text-amber-400 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded font-medium">${p.note}</span>` : `<span class="text-[10px] text-emerald-400">Titulaire régulier</span>`}
+                </div>
+            `).join('');
+        }
+
+        // 6. CALCUL PROBABILITÉ DE VICTOIRE
+        function calculateOdds(home, away) {
+            let homeScore = (home.ppg - home.oppg) + 3; // +3 avantage domicile
+            let awayScore = (away.ppg - away.oppg);
+
+            // Malus selon les blessés critiques
+            home.injuries.forEach(i => {
+                if (i.status === "OUT" && i.impact === "Critique") homeScore -= 4;
+                if (i.status === "OUT" && i.impact === "Majeur") homeScore -= 2;
+                if (["QUESTIONABLE", "GTD"].includes(i.status) && i.impact === "Critique") homeScore -= 1.5;
+                if (["QUESTIONABLE", "GTD"].includes(i.status) && i.impact === "Majeur") homeScore -= 0.75;
+            });
+            away.injuries.forEach(i => {
+                if (i.status === "OUT" && i.impact === "Critique") awayScore -= 4;
+                if (i.status === "OUT" && i.impact === "Majeur") awayScore -= 2;
+                if (["QUESTIONABLE", "GTD"].includes(i.status) && i.impact === "Critique") awayScore -= 1.5;
+                if (["QUESTIONABLE", "GTD"].includes(i.status) && i.impact === "Majeur") awayScore -= 0.75;
+            });
+
+            const diff = homeScore - awayScore;
+            let homeProb = Math.min(Math.max(Math.round(50 + (diff * 2.5)), 15), 85);
+            let awayProb = 100 - homeProb;
+
+            document.getElementById('homeWinOdds').innerText = `${home.name} : ${homeProb}%`;
+            document.getElementById('awayWinOdds').innerText = `${away.name} : ${awayProb}%`;
+            document.getElementById('homeOddsBar').style.width = `${homeProb}%`;
+            document.getElementById('awayOddsBar').style.width = `${awayProb}%`;
+        }
+
+        // 7. STATS COMPARATIVES
+        function renderBar(label, val1, val2) {
+            const total = val1 + val2;
+            const pct1 = Math.round((val1 / total) * 100);
+            const pct2 = 100 - pct1;
+            const is1 = val1 >= val2;
+
+            return `
+                <div>
+                    <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                        <span class="${is1 && val1 !== val2 ? 'text-blue-400 font-bold' : 'text-slate-400'}">${val1}</span>
+                        <span class="text-slate-300 uppercase tracking-wider text-[11px]">${label}</span>
+                        <span class="${is2 && val1 !== val2 ? 'text-amber-400 font-bold' : 'text-slate-400'}">${val2}</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                        <div class="h-full bg-blue-500 transition-all duration-300" style="width: ${pct1}%"></div>
+                        <div class="h-full bg-amber-500 transition-all duration-300" style="width: ${pct2}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 8. LISTE DES BLESSÉS
+        function renderInjuries(injuries, containerId, headerId, teamName) {
+            document.getElementById(headerId).innerHTML = `
+                <span>${teamName}</span>
+                <span class="text-xs font-normal text-slate-400">${injuries.length} indisponible(s)</span>
+            `;
+
+            const container = document.getElementById(containerId);
+            if (!injuries || injuries.length === 0) {
+                container.innerHTML = `
+                    <div class="p-3 bg-emerald-950/20 border border-emerald-800/30 rounded-xl text-xs text-emerald-400 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check"></i> Aucune blessure disponible dans les données reçues ; cela ne confirme pas que l’effectif est au complet.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = injuries.map(item => {
+                let badge = "bg-red-950/80 text-red-400 border-red-800/60";
+                if (item.status === "QUESTIONABLE") badge = "bg-amber-950/80 text-amber-400 border-amber-800/60";
+                if (item.status === "GTD") badge = "bg-purple-950/80 text-purple-400 border-purple-800/60";
+
+                return `
+                    <div class="bg-slate-900 border border-borderDark p-3 rounded-xl flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="font-bold text-sm text-slate-100">${item.player}</span>
+                                <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">${item.pos}</span>
+                            </div>
+                            <p class="text-xs text-slate-400">${item.reason} <span class="text-slate-500">• Retour : ${item.returnDate}</span></p>
+                        </div>
+                        <div class="text-right flex flex-col items-end gap-1">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded border ${badge}">${item.status}</span>
+                            <span class="text-[10px] text-slate-400">Impact : <strong class="text-slate-300">${item.impact}</strong></span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // RAFRAÎCHISSEMENT GLOBAL
+        function renderMatch() {
+            const hKey = document.getElementById('teamHomeSelect').value;
+            const aKey = document.getElementById('teamAwaySelect').value;
+            const home = NBA_TEAMS[hKey];
+            const away = NBA_TEAMS[aKey];
+
+            if (!home || !away) return;
+            if (hKey === aKey) {
+                const otherKey = Object.keys(NBA_TEAMS).find(key => key !== hKey);
+                if (otherKey) {
+                    document.getElementById('teamAwaySelect').value = otherKey;
+                    return renderMatch();
+                }
+            }
+
+            document.getElementById('homeLogoPreview').src = home.logo;
+            document.getElementById('awayLogoPreview').src = away.logo;
+
+            document.getElementById('homeCard').innerHTML = renderCard(home, true);
+            document.getElementById('awayCard').innerHTML = renderCard(away, false);
+
+            renderLineup(home.lineup, 'homeLineup', 'homeLineupTitle', home.name);
+            renderLineup(away.lineup, 'awayLineup', 'awayLineupTitle', away.name);
+
+            calculateOdds(home, away);
+
+            document.getElementById('statsComparison').innerHTML = [
+                renderBar("Attaque (PPG)", home.ppg, away.ppg),
+                renderBar("Défense (points concédés, moins = mieux)", home.oppg, away.oppg, true),
+                renderBar("Rebonds / Match", home.rpg, away.rpg),
+                renderBar("Passes / Match", home.apg, away.apg)
+            ].join('');
+
+            renderInjuries(home.injuries, 'homeInjuryList', 'homeInjuryHeader', home.name);
+            renderInjuries(away.injuries, 'awayInjuryList', 'awayInjuryHeader', away.name);
+            if (Object.keys(TEAM_ID_BY_ABBR).length) refreshSelectedTeamData();
+        }
+
+        // API ESPN : scores et classement. Cette API est publique mais non officielle/non garantie.
+        const ESPN_API = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
+        const ESPN_STANDINGS_API = 'https://site.api.espn.com/apis/v2/sports/basketball/nba/standings';
+
+        async function fetchJsonWithTimeout(url, timeoutMs = 12000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } finally {
+                clearTimeout(timer);
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+
+        function getCompetitor(event, homeAway) {
+            return (event.competitions?.[0]?.competitors || []).find(c => c.homeAway === homeAway);
+        }
+
+        function renderLiveGames(data) {
+            const root = document.getElementById('liveGames');
+            const events = data.events || [];
+            if (!events.length) {
+                root.innerHTML = '<p class="text-sm text-slate-400">Aucun match prévu pour la date affichée par l’API.</p>';
+                return;
+            }
+            root.innerHTML = events.map(event => {
+                const home = getCompetitor(event, 'home') || event.competitions?.[0]?.competitors?.[0] || {};
+                const away = getCompetitor(event, 'away') || event.competitions?.[0]?.competitors?.[1] || {};
+                const status = event.status?.type?.shortDetail || event.status?.type?.detail || 'Horaire à confirmer';
+                const hName = home.team?.displayName || 'Équipe domicile';
+                const aName = away.team?.displayName || 'Équipe extérieure';
+                const hScore = home.score ?? '—';
+                const aScore = away.score ?? '—';
+                return `<div class="bg-slate-900 border border-slate-700 rounded-xl p-3">
+                    <div class="text-[10px] text-emerald-300 mb-2">${escapeHtml(status)}</div>
+                    <div class="flex items-center justify-between gap-2 text-xs"><span class="font-semibold">${escapeHtml(aName)}</span><strong class="font-mono text-base">${escapeHtml(aScore)}</strong></div>
+                    <div class="flex items-center justify-between gap-2 text-xs mt-2"><span class="font-semibold">${escapeHtml(hName)}</span><strong class="font-mono text-base">${escapeHtml(hScore)}</strong></div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderLiveStandings(data) {
+            const root = document.getElementById('liveStandings');
+            const entries = [];
+            const walk = node => {
+                if (!node || typeof node !== 'object') return;
+                if (Array.isArray(node)) { node.forEach(walk); return; }
+                if (Array.isArray(node.entries)) {
+                    node.entries.forEach(entry => {
+                        const team = entry.team || entry.teamInfo || {};
+                        const stats = entry.stats || [];
+                        const stat = name => {
+                            const found = stats.find(x => x.name === name || x.abbreviation === name || x.type === name);
+                            return found?.displayValue ?? found?.value ?? '—';
+                        };
+                        if (team.displayName || team.name) entries.push({
+                            name: team.displayName || team.name,
+                            wins: stat('wins'), losses: stat('losses'), pct: stat('winPercent'), gb: stat('gamesBehind'),
+                            conf: node.name || node.abbreviation || ''
+                        });
+                    });
+                }
+                Object.entries(node).forEach(([key, value]) => { if (key !== 'entries') walk(value); });
+            };
+            walk(data);
+            const unique = [...new Map(entries.map(e => [e.name, e])).values()];
+            if (!unique.length) {
+                root.innerHTML = '<p class="text-slate-400">Le format du classement renvoyé par l’API n’a pas pu être interprété.</p>';
+                return;
+            }
+            root.innerHTML = `<table class="w-full min-w-[480px] text-left"><thead><tr class="text-slate-400 border-b border-slate-700"><th class="py-2 pr-3">Équipe</th><th class="py-2 pr-3">V</th><th class="py-2 pr-3">D</th><th class="py-2 pr-3">% V</th><th class="py-2">Écart</th></tr></thead><tbody>${unique.map(e => `<tr class="border-b border-slate-800"><td class="py-2 pr-3 font-medium">${escapeHtml(e.name)}</td><td class="py-2 pr-3">${escapeHtml(e.wins)}</td><td class="py-2 pr-3">${escapeHtml(e.losses)}</td><td class="py-2 pr-3">${escapeHtml(e.pct)}</td><td class="py-2">${escapeHtml(e.gb)}</td></tr>`).join('')}</tbody></table>`;
+        }
+
+        // Parse récursivement les objets ESPN afin de tolérer les variations de schéma.
+        function walkObjects(value, callback) {
+            if (!value || typeof value !== 'object') return;
+            callback(value);
+            if (Array.isArray(value)) value.forEach(v => walkObjects(v, callback));
+            else Object.values(value).forEach(v => walkObjects(v, callback));
+        }
+
+        function normalizeAbbr(value) {
+            const a = String(value || '').toUpperCase();
+            const aliases = { PHO: 'PHX', NO: 'NOP', NY: 'NYK', GS: 'GSW', SA: 'SAS', UTAH: 'UTA', WSH: 'WAS', BKN: 'BKN', LA: 'LAL', LAC: 'LAC' };
+            return aliases[a] || a;
+        }
+
+        async function loadEspnTeamIndex() {
+            try {
+                const data = await fetchJsonWithTimeout(`${ESPN_API}/teams?limit=1000`);
+                walkObjects(data, obj => {
+                    const team = obj.team && typeof obj.team === 'object' ? obj.team : obj;
+                    if (team.id && team.abbreviation && (team.displayName || team.name)) {
+                        const abbr = normalizeAbbr(team.abbreviation);
+                        if (NBA_TEAMS[abbr]) TEAM_ID_BY_ABBR[abbr] = String(team.id);
+                    }
+                });
+                return Object.keys(TEAM_ID_BY_ABBR).length > 0;
+            } catch (_) { return false; }
+        }
+
+        function readStat(stats, aliases) {
+            for (const stat of (stats || [])) {
+                const keys = [stat.name, stat.abbreviation, stat.type, stat.displayName].filter(Boolean).map(x => String(x).toLowerCase().replace(/[^a-z]/g, ''));
+                if (keys.some(k => aliases.includes(k))) {
+                    const n = Number(stat.value);
+                    if (Number.isFinite(n)) return n;
+                    const parsed = parseFloat(String(stat.displayValue || '').replace('%',''));
+                    if (Number.isFinite(parsed)) return parsed;
+                }
+            }
+            return null;
+        }
+
+        function updateTeamsFromStandings(data) {
+            LAST_STANDINGS_DATA = data;
+            walkObjects(data, node => {
+                if (!Array.isArray(node.entries)) return;
+                for (const entry of node.entries) {
+                    const t = entry.team || entry.teamInfo || {};
+                    const abbr = normalizeAbbr(t.abbreviation || t.shortDisplayName);
+                    const key = NBA_TEAMS[abbr] ? abbr : Object.keys(NBA_TEAMS).find(k => NBA_TEAMS[k].name === (t.displayName || t.name));
+                    if (!key) continue;
+                    const stats = entry.stats || [];
+                    const stat = names => {
+                        for (const name of names) {
+                            const found = stats.find(x => [x.name, x.abbreviation, x.type].some(v => String(v || '').toLowerCase() === name));
+                            if (found) {
+                                const n = Number(found.value);
+                                if (Number.isFinite(n)) return n;
+                                const parsed = parseFloat(String(found.displayValue || '').replace('%',''));
+                                if (Number.isFinite(parsed)) return parsed;
+                            }
+                        }
+                        return null;
+                    };
+                    const wins = stat(['wins','win']);
+                    const losses = stat(['losses','loss']);
+                    if (wins !== null && losses !== null) NBA_TEAMS[key].record = `${wins}-${losses}`;
+                    const ppg = stat(['avgpointsfor','pointsfor','pointspergame','ppg']);
+                    const oppg = stat(['avgpointsagainst','pointsagainst','opponentpointspergame','oppg']);
+                    const rpg = stat(['avgrebounds','reboundspergame','rpg']);
+                    const apg = stat(['avgassists','assistspergame','apg']);
+                    if (ppg !== null && ppg > 50 && ppg < 160) NBA_TEAMS[key].ppg = Number(ppg.toFixed(1));
+                    if (oppg !== null && oppg > 50 && oppg < 160) NBA_TEAMS[key].oppg = Number(oppg.toFixed(1));
+                    if (rpg !== null && rpg > 10 && rpg < 80) NBA_TEAMS[key].rpg = Number(rpg.toFixed(1));
+                    if (apg !== null && apg > 5 && apg < 60) NBA_TEAMS[key].apg = Number(apg.toFixed(1));
+                }
+            });
+            renderMatch();
+        }
+
+        function extractPlayers(data) {
+            const found = [];
+            const seen = new Set();
+            walkObjects(data, obj => {
+                const p = obj.athlete || obj.player || obj;
+                const name = p.fullName || p.displayName || p.name;
+                if (!name || typeof name !== 'string' || name.length < 3) return;
+                const pos = p.position?.abbreviation || p.position?.name || obj.position?.abbreviation || obj.position || '—';
+                const id = String(p.id || name);
+                if (seen.has(id)) return;
+                // Ne retenir que les objets qui ressemblent réellement à un joueur d'effectif.
+                if (p.fullName || p.displayName || obj.athlete || obj.player || (p.id && (p.jersey || p.position || p.links))) {
+                    seen.add(id);
+                    found.push({ player: name, pos: typeof pos === 'string' ? pos : '—', id: String(p.id || '') });
+                }
+            });
+            return found.slice(0, 25);
+        }
+
+        function extractInjuries(data) {
+            const found = [];
+            const seen = new Set();
+            walkObjects(data, obj => {
+                const athlete = obj.athlete || obj.player || obj;
+                const name = athlete.fullName || athlete.displayName || athlete.name;
+                const statusObj = obj.status || obj.injuryStatus || obj.gameStatus;
+                const status = typeof statusObj === 'string' ? statusObj : (statusObj?.name || statusObj?.description || statusObj?.type || '');
+                const details = obj.details || obj.injury || obj.type || {};
+                const reason = typeof details === 'string' ? details : (details.detail || details.type || details.description || obj.shortComment || obj.longComment || 'Motif non précisé');
+                if (!name || !status || !(obj.athlete || obj.player || obj.injury || obj.status || obj.injuryStatus)) return;
+                const id = `${name}|${status}`;
+                if (seen.has(id)) return;
+                seen.add(id);
+                const upper = String(status).toUpperCase();
+                const normalized = /OUT|INACTIVE|SUSPEND/.test(upper) ? 'OUT' : /QUESTION|DOUBT/.test(upper) ? 'QUESTIONABLE' : /DAY.?TO.?DAY|GTD|GAME.?TIME/.test(upper) ? 'GTD' : String(status).toUpperCase();
+                found.push({ player: name, pos: athlete.position?.abbreviation || '—', status: normalized, reason: String(reason), returnDate: 'Non communiqué par l’API', impact: 'À évaluer' });
+            });
+            return found;
+        }
+
+        function renderLiveRoster(players, containerId, titleId, teamName) {
+            const title = document.getElementById(titleId);
+            const root = document.getElementById(containerId);
+            if (!players || !players.length) return false;
+            title.textContent = `Effectif fourni par l’API : ${teamName}`;
+            root.innerHTML = players.map(p => `<div class="bg-slate-900 border border-borderDark px-3 py-2 rounded-xl flex items-center justify-between text-xs"><div class="flex items-center gap-2"><span class="font-mono font-bold text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">${escapeHtml(p.pos)}</span><span class="font-bold text-slate-200">${escapeHtml(p.player)}</span></div><span class="text-[10px] text-emerald-300">Effectif API · titulaire non garanti</span></div>`).join('');
+            return true;
+        }
+
+        async function refreshSelectedTeamData() {
+            const keys = [document.getElementById('teamHomeSelect').value, document.getElementById('teamAwaySelect').value];
+            const jobs = keys.map(async (key, index) => {
+                const id = TEAM_ID_BY_ABBR[key];
+                if (!id) return;
+                const cacheKey = `${key}`;
+                let data = TEAM_DATA_CACHE.get(cacheKey);
+                if (!data || Date.now() - data.at > 5 * 60 * 1000) {
+                    let pending = TEAM_DATA_PENDING.get(cacheKey);
+                    if (!pending) {
+                        pending = (async () => {
+                            const results = await Promise.allSettled([
+                                fetchJsonWithTimeout(`${ESPN_API}/teams/${id}/roster`),
+                                fetchJsonWithTimeout(`${ESPN_API}/teams/${id}/injuries`)
+                            ]);
+                            const loaded = { at: Date.now(), roster: results[0].status === 'fulfilled' ? extractPlayers(results[0].value) : [], rosterOk: results[0].status === 'fulfilled', injuries: results[1].status === 'fulfilled' ? extractInjuries(results[1].value) : [], injuriesOk: results[1].status === 'fulfilled' };
+                            TEAM_DATA_CACHE.set(cacheKey, loaded);
+                            return loaded;
+                        })();
+                        TEAM_DATA_PENDING.set(cacheKey, pending);
+                    }
+                    try { data = await pending; } finally { TEAM_DATA_PENDING.delete(cacheKey); }
+                }
+                const isHome = index === 0;
+                const team = NBA_TEAMS[key];
+                const rendered = renderLiveRoster(data.roster, isHome ? 'homeLineup' : 'awayLineup', isHome ? 'homeLineupTitle' : 'awayLineupTitle', team.name);
+                if (rendered) document.getElementById(isHome ? 'homeLineup' : 'awayLineup').dataset.liveApi = 'true';
+                if (data.injuriesOk) {
+                    team.injuries = data.injuries;
+                    renderInjuries(team.injuries, isHome ? 'homeInjuryList' : 'awayInjuryList', isHome ? 'homeInjuryHeader' : 'awayInjuryHeader', team.name);
+                }
+                await renderPlayerStats(data.roster || [], isHome ? 'homePlayerStats' : 'awayPlayerStats', isHome ? 'homePlayerStatsTitle' : 'awayPlayerStatsTitle', team.name);
+            });
+            await Promise.allSettled(jobs);
+            renderMatchAfterLiveTeamData();
+        }
+
+        const PLAYER_STATS_CACHE = new Map();
+
+        function extractPlayerSeasonStats(data) {
+            const result = { pts: null, reb: null, ast: null };
+            const aliases = {
+                pts: ['pointspergame', 'avgpoints', 'avgpts', 'ppg'],
+                reb: ['reboundspergame', 'avgrebounds', 'avgreb', 'rpg'],
+                ast: ['assistspergame', 'avgassists', 'avgast', 'apg']
+            };
+            walkObjects(data, obj => {
+                const name = String(obj.name || obj.abbreviation || obj.type || obj.displayName || '').toLowerCase().replace(/[^a-z]/g, '');
+                const raw = obj.displayValue ?? obj.value ?? obj.avg;
+                if (raw === undefined || raw === null) return;
+                const val = Number(String(raw).replace('%',''));
+                if (!Number.isFinite(val)) return;
+                for (const key of Object.keys(aliases)) {
+                    if (aliases[key].includes(name) && result[key] === null && val >= 0 && val < 100) result[key] = Number(val.toFixed(1));
+                }
+            });
+            return result;
+        }
+
+        async function fetchPlayerSeasonStats(player) {
+            if (!player.id) return null;
+            const cached = PLAYER_STATS_CACHE.get(player.id);
+            if (cached && Date.now() - cached.at < 15 * 60 * 1000) return cached.value;
+            const url = `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${encodeURIComponent(player.id)}/overview`;
+            try {
+                const data = await fetchJsonWithTimeout(url, 9000);
+                const value = extractPlayerSeasonStats(data);
+                PLAYER_STATS_CACHE.set(player.id, { at: Date.now(), value });
+                return value;
+            } catch (_) { return null; }
+        }
+
+        async function renderPlayerStats(roster, containerId, titleId, teamName) {
+            const root = document.getElementById(containerId);
+            const title = document.getElementById(titleId);
+            title.textContent = `Aperçu joueurs : ${teamName}`;
+            const candidates = (roster || []).filter(p => p.id).slice(0, 5);
+            if (!candidates.length) {
+                root.innerHTML = '<p class="text-xs text-slate-500">Statistiques individuelles indisponibles via l’API pour cette équipe.</p>';
+                return;
+            }
+            root.innerHTML = '<p class="text-xs text-slate-500">Chargement des statistiques individuelles…</p>';
+            const rows = await Promise.all(candidates.map(async player => ({ player, stats: await fetchPlayerSeasonStats(player) })));
+            const valid = rows.filter(row => row.stats && (row.stats.pts !== null || row.stats.reb !== null || row.stats.ast !== null));
+            if (!valid.length) {
+                root.innerHTML = '<p class="text-xs text-slate-500">L’API n’a pas fourni de moyennes saison lisibles pour les joueurs chargés.</p>';
+                return;
+            }
+            root.innerHTML = valid.map(({player, stats}) => `<div class="bg-slate-900 border border-borderDark rounded-xl p-3"><div class="font-bold text-xs mb-2">${escapeHtml(player.player)} <span class="text-slate-500 font-normal">(${escapeHtml(player.pos)})</span></div><div class="grid grid-cols-3 gap-2 text-center"><div><div class="text-[10px] text-slate-500">PTS/M</div><div class="font-bold text-sm">${stats.pts ?? '—'}</div></div><div><div class="text-[10px] text-slate-500">REB/M</div><div class="font-bold text-sm">${stats.reb ?? '—'}</div></div><div><div class="text-[10px] text-slate-500">AST/M</div><div class="font-bold text-sm">${stats.ast ?? '—'}</div></div></div></div>`).join('');
+        }
+
+        function renderMatchAfterLiveTeamData() {
+            // Recalculer la probabilité après mise à jour éventuelle des blessures API, sans écraser les effectifs affichés.
+            const home = NBA_TEAMS[document.getElementById('teamHomeSelect').value];
+            const away = NBA_TEAMS[document.getElementById('teamAwaySelect').value];
+            if (home && away) calculateOdds(home, away);
+        }
+
+        async function refreshLiveData() {
+            const status = document.getElementById('apiStatus');
+            const button = document.getElementById('refreshApiBtn');
+            if (button) { button.disabled = true; button.classList.add('opacity-60'); }
+            status.textContent = 'Actualisation des matchs, classement et index des équipes…';
+            const results = await Promise.allSettled([
+                fetchJsonWithTimeout(`${ESPN_API}/scoreboard`),
+                fetchJsonWithTimeout(ESPN_STANDINGS_API),
+                loadEspnTeamIndex()
+            ]);
+            let successCount = 0;
+            if (results[0].status === 'fulfilled') {
+                LIVE_EVENTS = results[0].value.events || [];
+                renderLiveGames(results[0].value);
+                renderFixtures();
+                successCount++;
+            } else {
+                document.getElementById('liveGames').innerHTML = '<p class="text-sm text-amber-300">Scores indisponibles. Réessayez dans un instant.</p>';
+                renderFixtures();
+            }
+            if (results[1].status === 'fulfilled') {
+                renderLiveStandings(results[1].value);
+                updateTeamsFromStandings(results[1].value);
+                successCount++;
+            } else {
+                document.getElementById('liveStandings').innerHTML = '<p class="text-sm text-amber-300">Classement indisponible pour le moment.</p>';
+            }
+            if (results[2].status === 'fulfilled' && results[2].value) successCount++;
+            const now = new Date().toLocaleString('fr-FR');
+            status.textContent = `${successCount}/3 services disponibles • Dernière tentative : ${now}. Effectifs, blessures et statistiques individuelles demandés pour les équipes sélectionnées.`;
+            if (button) { button.disabled = false; button.classList.remove('opacity-60'); }
+            refreshSelectedTeamData();
+        }
+
+        // INITIALISATION
+        populateSelectors();
+        renderFixtures();
+        renderMatch();
+        refreshLiveData();
+        // Rafraîchissement automatique toutes les 5 minutes pendant que la page reste ouverte.
+        setInterval(refreshLiveData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
